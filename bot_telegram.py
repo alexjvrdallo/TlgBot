@@ -34,14 +34,14 @@ async def ayuda_command(message: Message):
 # Comando /staff
 @dp.message_handler(commands=["staff"])
 async def staff_command(message: Message):
-    await message.reply("👨‍💼 Lista de administradores:"
+    await message.reply("👨‍💼 Lista de administradores:
 - Admin 1
 - Admin 2")
 
 # Comando /reglas
 @dp.message_handler(commands=["reglas"])
 async def reglas_command(message: Message):
-    await message.reply("📜 Reglas del grupo:"
+    await message.reply("📜 Reglas del grupo:
 1. Respeta a los demás.
 2. No spam.
 3. Sigue las instrucciones del staff.")
