@@ -53,19 +53,25 @@ async def ayuda(msg: types.Message):
 async def staff(msg: types.Message):
     if msg.chat.type in ["group", "supergroup"]:
         chat_admins = await bot.get_chat_administrators(msg.chat.id)
-        texto = "👮 Lista de administradores:\n"
+        texto = "👮 Lista de administradores:
+"
         for admin in chat_admins:
             user = admin.user
             if user.username:
-                texto += f"• [{user.full_name}](https://t.me/{user.username})\n"
+                texto += f"• [{user.full_name}](https://t.me/{user.username})
+"
             else:
-                texto += f"• {user.full_name}\n"
+                texto += f"• {user.full_name}
+"
         await msg.reply(texto, parse_mode="Markdown")
 
 @dp.message_handler(content_types=types.ContentType.NEW_CHAT_MEMBERS)
 async def bienvenida_nuevo(msg: types.Message):
     for user in msg.new_chat_members:
-        await msg.reply(f"👋 Bienvenido/a {user.full_name} al grupo.\n\n{bienvenida}")
+        await msg.reply(f"👋 Bienvenido/a {user.full_name} al grupo.
+
+{bienvenida}")
+        # Guardar admins actuales
         admins[msg.chat.id] = await bot.get_chat_administrators(msg.chat.id)
 
 @dp.message_handler()
@@ -73,6 +79,7 @@ async def filtro_general(msg: types.Message):
     if msg.chat.type not in ["group", "supergroup"]:
         return
 
+    # Filtro de groserías
     if any(palabra in msg.text.lower() for palabra in bad_words):
         usuario = msg.from_user.id
         advertencias = user_warnings.get(usuario, 0) + 1
@@ -94,6 +101,7 @@ async def filtro_general(msg: types.Message):
             )
         await msg.delete()
 
+    # Mención de administrador
     if msg.entities:
         for entity in msg.entities:
             if entity.type == "mention":
