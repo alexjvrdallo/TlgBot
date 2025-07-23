@@ -1,65 +1,39 @@
-
 import os
 from telegram import Update, ChatPermissions
-from telegram.ext import ApplicationBuilder, MessageHandler, ContextTypes, filters
-import logging
+from telegram.ext import ApplicationBuilder, MessageHandler, filters, CommandHandler, ContextTypes
+import asyncio
 
-# Configurar logs
-logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
-)
+GROUP_RULES = "Reglas del grupo: No spam, no enlaces, respeta a los demás."
 
-# Token desde variable de entorno
-TOKEN = os.getenv("TOKEN")
-if not TOKEN:
-    raise RuntimeError("❌ No se encontró la variable TOKEN en Railway.")
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Hola, soy el bot del grupo.")
 
-# Palabras prohibidas y enlaces que se consideran spam
-PROHIBIDAS = ["grosería", "insulto", "http", "www", "t.me", ".com", "oferta", "promo"]
-REGLAS = (
-    "📌 *Reglas del grupo:*
-"
-    "- No decir malas palabras
-"
-    "- No Spam de ningún tipo
-"
-    "- No hablar de precios en ningún grupo"
-)
-
-# Mensaje de bienvenida
-async def bienvenida(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    for miembro in update.message.new_chat_members:
-        await update.message.reply_text(
-            f"👋 Bienvenido/a {miembro.full_name} al grupo.
-
-{REGLAS}",
-            parse_mode="Markdown"
+async def welcome(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    for member in update.message.new_chat_members:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=f"👋 Bienvenido/a {member.full_name}!
+{GROUP_RULES}"
         )
 
-# Filtro de contenido
-async def moderar(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    mensaje = update.message
-    texto = mensaje.text.lower()
+async def filter_links(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if "http://" in update.message.text or "https://" in update.message.text:
+        await update.message.delete()
+        await update.message.reply_text("❌ No se permiten enlaces.")
 
-    if any(p in texto for p in PROHIBIDAS):
-        try:
-            await mensaje.delete()
-            await mensaje.reply_text("🚫 Ese mensaje fue eliminado por infringir las reglas.")
-        except Exception as e:
-            logging.warning(f"No se pudo borrar mensaje: {e}")
+def main():
+    TOKEN = os.getenv("TOKEN")
+    if not TOKEN:
+        raise RuntimeError("No se encontró el TOKEN en las variables de entorno.")
 
-# Arranque del bot
-async def main():
     app = ApplicationBuilder().token(TOKEN).build()
 
-    # Mensajes nuevos en grupo (bienvenida)
-    app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, bienvenida))
-    # Filtro de mensajes de texto
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, moderar))
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, welcome))
+    app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), filter_links))
 
-    print("✅ Bot en funcionamiento. Esperando mensajes...")
-    await app.run_polling()
+    print("Bot iniciado.")
+    app.run_polling()
 
 if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
+    main()
