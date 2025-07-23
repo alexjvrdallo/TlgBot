@@ -1,74 +1,70 @@
-
+import os
 import logging
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import ChatPermissions
 from aiogram.utils import executor
-from aiogram.dispatcher.filters import CommandStart
-import asyncio
-import os
+from aiogram.dispatcher.filters import CommandStart, Command
+from aiogram.dispatcher.middlewares import BaseMiddleware
+from aiogram.dispatcher.handler import CancelHandler
+from aiogram.dispatcher import FSMContext
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
+from datetime import datetime, timedelta
 
-API_TOKEN = os.getenv("BOT_TOKEN")
+API_TOKEN = os.getenv("API_TOKEN")
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=API_TOKEN)
-dp = Dispatcher(bot)
+storage = MemoryStorage()
+dp = Dispatcher(bot, storage=storage)
 
+# Diccionario para advertencias de spam
 user_warnings = {}
 
-WELCOME_MESSAGE = "👋 Bienvenido/a {name} al grupo."
-RULES_TEXT = "📌 Reglas del grupo:\n1. Respeto mutuo.\n2. No spam.\n3. Seguir las normas de Telegram."
+# ID de administradores (puedes personalizar si gustas)
 ADMINS = []
 
-SPAM_KEYWORDS = ["http", "www", ".com", "t.me/", "joinchat", "@", "#"]
+# Reglas
+REGLAS = "📌 Reglas del grupo:\n1. Respeto mutuo\n2. No spam\n3. Seguir las normas de Telegram."
 
-@dp.message_handler(CommandStart(), chat_type=types.ChatType.PRIVATE)
-async def start_private(message: types.Message):
-    await message.reply("¡Hola! Bienvenido al bot. Usa /reglas para ver las reglas.")
+@dp.message_handler(CommandStart())
+async def send_welcome(message: types.Message):
+    await message.answer("¡Hola! Bienvenido al bot. Usa /reglas para ver las reglas.")
 
-@dp.message_handler(commands=["reglas"], chat_type=types.ChatType.PRIVATE)
-@dp.message_handler(commands=["reglas"], chat_type=types.ChatType.GROUP)
-async def reglas_command(message: types.Message):
-    await message.reply(RULES_TEXT)
+@dp.message_handler(commands=["reglas"])
+async def reglas(message: types.Message):
+    await message.answer(REGLAS)
 
-@dp.message_handler(content_types=types.ContentType.NEW_CHAT_MEMBERS)
+@dp.message_handler(content_types=types.ContentTypes.NEW_CHAT_MEMBERS)
 async def welcome_user(message: types.Message):
     for user in message.new_chat_members:
-        await message.reply(WELCOME_MESSAGE.format(name=user.full_name))
+        await message.reply(f"👋 Bienvenido/a {user.full_name} al grupo.")
 
 @dp.message_handler()
-async def check_spam(message: types.Message):
-    if message.chat.type not in ["group", "supergroup", "private"]:
-        return
-
+async def detect_spam(message: types.Message):
     user_id = message.from_user.id
-    text = message.text.lower()
-    is_spam = any(word in text for word in SPAM_KEYWORDS)
+    chat_id = message.chat.id
 
-    if is_spam:
-        user_warnings[user_id] = user_warnings.get(user_id, 0) + 1
-        warnings = user_warnings[user_id]
+    # Detectar enlaces como spam
+    if "http://" in message.text or "https://" in message.text:
+        warnings = user_warnings.get(user_id, 0) + 1
+        user_warnings[user_id] = warnings
 
         if warnings == 1:
-            await message.reply("⚠️ Advertencia 1: No envíes spam.")
+            await message.reply("⚠️ Primera advertencia por spam.")
         elif warnings == 2:
-            await message.reply("⚠️ Advertencia 2: Último aviso. Serás notificado a los administradores.")
-            try:
-                chat_admins = await bot.get_chat_administrators(message.chat.id)
-                for admin in chat_admins:
-                    if admin.user.is_bot:
-                        continue
-                    await bot.send_message(admin.user.id, f"🔔 Usuario {message.from_user.full_name} está enviando spam.")
-            except:
-                pass
+            await message.reply("⚠️ Segunda advertencia por spam. Se notificó a los administradores.")
+            for admin in ADMINS:
+                try:
+                    await bot.send_message(admin, f"⚠️ Usuario {message.from_user.full_name} ha cometido 2 infracciones de spam en el grupo {chat_id}")
+                except:
+                    pass
         elif warnings >= 3:
-            await message.reply("⛔ Has sido silenciado por enviar spam reiteradamente (5 minutos).")
-            until_date = message.date + asyncio.timedelta(minutes=5)
-            try:
-                await bot.restrict_chat_member(
-                    message.chat.id,
-                    message.from_user.id,
-                    ChatPermissions(can_send_messages=False),
-                    until_date=until_date
-                )
-            except:
-                await message.reply("⚠️ No tengo permisos suficientes para silenciar.")
+            await message.reply("🚫 Has sido silenciado por 5 minutos por exceder el límite de advertencias.")
+            until_date = datetime.now() + timedelta(minutes=5)
+            await bot.restrict_chat_member(
+                chat_id=chat_id,
+                user_id=user_id,
+                permissions=ChatPermissions(can_send_messages=False),
+                until_date=until_date
+            )
+            user_warnings[user_id] = 0  # Reiniciar advertencias
