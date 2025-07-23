@@ -1,21 +1,17 @@
-from telegram.ext import Updater, CommandHandler
+from telegram import Update
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
-# Función de respuesta al comando /start
-def start(update, context):
-    update.message.reply_text("✅ El bot está funcionando correctamente en este grupo.")
+TOKEN = "TU_TOKEN"
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("¡Hola! Bienvenido al grupo.")
 
 def main():
-    # Reemplaza TU_TOKEN con tu token real
-    updater = Updater("TU_TOKEN", use_context=True)
+    app = ApplicationBuilder().token(TOKEN).build()
 
-    dp = updater.dispatcher
+    app.add_handler(CommandHandler("start", start))
 
-    # Agregamos el manejador para el comando /start
-    dp.add_handler(CommandHandler("start", start))
+    app.run_polling()
 
-    # Iniciamos el bot
-    updater.start_polling()
-    updater.idle()
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
