@@ -1,71 +1,49 @@
-
 import os
-from aiogram import Bot, Dispatcher, types
-from aiogram.types import Message
-from aiogram.utils import executor
 from dotenv import load_dotenv
+from telegram import Update
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
 load_dotenv()
-API_TOKEN = os.getenv("API_TOKEN")
+TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
-bot = Bot(token=API_TOKEN)
-dp = Dispatcher(bot)
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "¡Hola y gracias por unirte a nuestra comunidad. Estamos muy contentos de tenerte aquí. "
+        "Antes de comenzar, por favor tómate un momento para leer nuestras reglas para mantener "
+        "un ambiente respetuoso y productivo para todos:\n\nUsa /reglas para verlas.\n"
+        "Si necesitas ayuda, escribe /ayuda."
+    )
 
-# Lista de administradores
-admins = [
-    {"nombre": "Admin 1", "contacto": "@admin1"},
-    {"nombre": "Admin 2", "contacto": "@admin2"}
-]
-
-# Mensaje de bienvenida
-@dp.message_handler(commands=["start"])
-async def cmd_start(message: Message):
-    await message.reply("¡Hola y gracias por unirte a nuestra comunidad. Estamos muy contentos de tenerte aquí. "
-                        "Antes de comenzar, por favor tómate un momento para leer nuestras reglas para mantener "
-                        "un ambiente respetuoso y productivo para todos:
-
-Usa /reglas para verlas.
-
-"
-                        "Si necesitas ayuda, puedes usar /ayuda.")
-
-# Reglas
-@dp.message_handler(commands=["reglas"])
-async def cmd_reglas(message: Message):
-    reglas = (
-        "📌 Reglas del grupo:
-"
-        "1. Prohibido dar precios en público.
-"
-        "2. Respeto ante todo: no se toleran insultos, lenguaje ofensivo ni discriminación.
-"
-        "3. Nada de spam, promociones o enlaces sin autorización.
-"
-        "4. Evita mensajes repetitivos, cadenas o contenido no relacionado.
-"
+async def reglas(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "📌 Reglas del grupo:\n"
+        "1. Prohibido dar precios en público.\n"
+        "2. Respeto ante todo: no se toleran insultos, lenguaje ofensivo ni discriminación.\n"
+        "3. Nada de spam, promociones o enlaces sin autorización.\n"
+        "4. Evita mensajes repetitivos, cadenas o contenido no relacionado.\n"
         "5. Las decisiones de los administradores son finales. Si tienes dudas, puedes contactarlos."
     )
-    await message.reply(reglas)
 
-# Staff
-@dp.message_handler(commands=["staff"])
-async def cmd_staff(message: Message):
-    respuesta = "👤 Lista de administradores:
-"
-    for admin in admins:
-        respuesta += f"- {admin['nombre']} ({admin['contacto']})
-"
-    await message.reply(respuesta)
+async def staff(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "👥 Lista de administradores:\n"
+        "• Admin 1: @Admin1\n"
+        "• Admin 2: @Admin2"
+    )
 
-# Ayuda
-@dp.message_handler(commands=["ayuda"])
-async def cmd_ayuda(message: Message):
-    await message.reply("📩 Un administrador será notificado para ayudarte.")
-    for admin in admins:
+async def ayuda(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("🔔 Un administrador ha sido notificado.")
+    admin_usernames = ["@Admin1", "@Admin2"]
+    for username in admin_usernames:
         try:
-            await bot.send_message(admin["contacto"], f"El usuario @{message.from_user.username} ha solicitado ayuda en el grupo.")
-        except:
-            pass  # en caso de que el bot no pueda enviar mensaje privado
+            await context.bot.send_message(chat_id=username, text="🚨 Un usuario ha solicitado ayuda en el grupo.")
+        except Exception as e:
+            print(f"Error al enviar mensaje a {username}: {e}")
 
-if __name__ == "__main__":
-    executor.start_polling(dp)
+app = ApplicationBuilder().token(TOKEN).build()
+app.add_handler(CommandHandler("start", start))
+app.add_handler(CommandHandler("reglas", reglas))
+app.add_handler(CommandHandler("staff", staff))
+app.add_handler(CommandHandler("ayuda", ayuda))
+
+app.run_polling()
