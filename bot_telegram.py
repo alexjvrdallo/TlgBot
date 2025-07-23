@@ -1,109 +1,114 @@
+from aiogram import Bot, Dispatcher, types, executor
 import logging
-    from aiogram import Bot, Dispatcher, executor, types
-    from aiogram.types import ChatMemberUpdated, ChatPermissions
-    import os
+import re
+import os
+from aiogram.types import ChatPermissions
 
-    API_TOKEN = os.getenv("API_TOKEN")
-    logging.basicConfig(level=logging.INFO)
-    bot = Bot(token=API_TOKEN, parse_mode="Markdown")
-    dp = Dispatcher(bot)
+API_TOKEN = os.getenv("API_TOKEN")
 
-    # Diccionario de advertencias por usuario
-    warnings = {}
+logging.basicConfig(level=logging.INFO)
+bot = Bot(token=API_TOKEN)
+dp = Dispatcher(bot)
 
-    # Palabras prohibidas
-    bad_words = ["grosería1", "grosería2", "spam", "maldición", "precio", "http", "https"]
+admins = {}
 
-    reglas_texto = "*Reglas del grupo:*
-" \
-                   "1. Prohibido dar precios en público.
-" \
-                   "2. Respeto ante todo: no se toleran insultos, lenguaje ofensivo ni discriminación.
-" \
-                   "3. Nada de spam, promociones o enlaces sin autorización.
-" \
-                   "4. Evita mensajes repetitivos, cadenas o contenido no relacionado.
-" \
-                   "5. Las decisiones de los administradores son finales. Si tienes dudas, puedes contactarlos."
+# Lista de palabras prohibidas
+bad_words = ["grosería1", "grosería2", "grosería3"]
+user_warnings = {}
 
-    bienvenida_texto = "*Hola y gracias por unirte a nuestra comunidad.*
-" \
-                       "Estamos muy contentos de tenerte aquí.
+# Reglas del grupo
+reglas_texto = """📌 Reglas del grupo:
 
-" \
-                       "Antes de comenzar, por favor tómate un momento para leer nuestras reglas para mantener un ambiente respetuoso y productivo para todos.
+1. Prohibido dar precios en Público.
+2. Respeto ante todo: no se toleran insultos, lenguaje ofensivo ni discriminación.
+3. Nada de spam, promociones o enlaces sin autorización.
+4. Evita mensajes repetitivos, cadenas o contenido no relacionado.
+5. Las decisiones de los administradores son finales. Si tienes dudas, puedes contactarlos.
+"""
 
-" \
-                       "Usa /reglas para ver las normas del grupo.
-" \
-                       "Usa /staff para conocer a los administradores.
-" \
-                       "Si necesitas ayuda, escribe /ayuda y se notificará a los administradores."
+bienvenida = """👋 Hola y gracias por unirte a nuestra comunidad. Estamos muy contentos de tenerte aquí.
+Antes de comenzar, por favor tómate un momento para leer nuestras reglas para mantener un ambiente respetuoso y productivo para todos:
 
-    @dp.message_handler(commands=["start"])
-    async def cmd_start(message: types.Message):
-        await message.answer("¡Hola! Usa /reglas para ver las normas del grupo.")
+/reglas - para ver las reglas
+/staff - para ver a los administradores del grupo
+/ayuda - si necesitas ayuda y quieres notificar a un admin
+"""
 
-    @dp.message_handler(commands=["reglas"])
-    async def cmd_reglas(message: types.Message):
-        await message.reply(reglas_texto)
+@dp.message_handler(commands=["start"])
+async def start(msg: types.Message):
+    await msg.answer("Bot activo.")
 
-    @dp.message_handler(commands=["ayuda"])
-    async def cmd_ayuda(message: types.Message):
-        admins = await bot.get_chat_administrators(message.chat.id)
-        for admin in admins:
-            try:
-                await bot.send_message(admin.user.id, f"El usuario @{message.from_user.username or message.from_user.full_name} pidió ayuda en el grupo *{message.chat.title}*.")
-            except:
-                continue
-        await message.reply("Se ha notificado a los administradores. ¡Pronto te ayudarán!")
+@dp.message_handler(commands=["reglas"])
+async def reglas(msg: types.Message):
+    await msg.reply(reglas_texto)
 
-    @dp.message_handler(commands=["staff"])
-    async def cmd_staff(message: types.Message):
-        admins = await bot.get_chat_administrators(message.chat.id)
-        texto = "*Administradores del grupo:*
+@dp.message_handler(commands=["ayuda"])
+async def ayuda(msg: types.Message):
+    if msg.chat.type in ["group", "supergroup"]:
+        for admin in admins.get(msg.chat.id, []):
+            await bot.send_message(admin.user.id, f"🆘 {msg.from_user.full_name} (@{msg.from_user.username}) pidió ayuda en el grupo {msg.chat.title}.")
+        await msg.reply("✅ Los administradores han sido notificados.")
 
+@dp.message_handler(commands=["staff"])
+async def staff(msg: types.Message):
+    if msg.chat.type in ["group", "supergroup"]:
+        chat_admins = await bot.get_chat_administrators(msg.chat.id)
+        texto = "👮 Lista de administradores:
 "
-        for admin in admins:
+        for admin in chat_admins:
             user = admin.user
             if user.username:
-                texto += f"• [{user.first_name}](https://t.me/{user.username})
+                texto += f"• [{user.full_name}](https://t.me/{user.username})
 "
             else:
-                texto += f"• {user.first_name} (ID: `{user.id}`)
+                texto += f"• {user.full_name}
 "
-        texto += "
-Puedes contactarlos tocando su nombre."
-        await message.reply(texto, parse_mode="Markdown")
+        await msg.reply(texto, parse_mode="Markdown")
 
-    @dp.chat_member_handler()
-    async def welcome_new_member(update: ChatMemberUpdated):
-        if update.new_chat_member.status == "member":
-            await bot.send_message(update.chat.id, bienvenida_texto)
+@dp.message_handler(content_types=types.ContentType.NEW_CHAT_MEMBERS)
+async def bienvenida_nuevo(msg: types.Message):
+    for user in msg.new_chat_members:
+        await msg.reply(f"👋 Bienvenido/a {user.full_name} al grupo.
 
-    @dp.message_handler()
-    async def filtro_mensajes(message: types.Message):
-        texto = message.text.lower()
-        if any(palabra in texto for palabra in bad_words):
-            uid = message.from_user.id
-            warnings[uid] = warnings.get(uid, 0) + 1
+{bienvenida}")
+        # Guardar admins actuales
+        admins[msg.chat.id] = await bot.get_chat_administrators(msg.chat.id)
 
-            if warnings[uid] == 2:
-                admins = await bot.get_chat_administrators(message.chat.id)
-                for admin in admins:
-                    try:
-                        await bot.send_message(admin.user.id, f"El usuario @{message.from_user.username or message.from_user.full_name} recibió su segunda advertencia en *{message.chat.title}*.")
-                    except:
-                        continue
+@dp.message_handler()
+async def filtro_general(msg: types.Message):
+    if msg.chat.type not in ["group", "supergroup"]:
+        return
 
-            if warnings[uid] >= 3:
-                try:
-                    await message.chat.restrict(uid, ChatPermissions(can_send_messages=False), until_date=300)
-                    await message.reply("Has sido silenciado por 5 minutos por violar repetidamente las reglas.")
-                except:
-                    pass
-            else:
-                await message.reply(f"Advertencia {warnings[uid]}/3: ese contenido no está permitido.")
+    # Filtro de groserías
+    if any(palabra in msg.text.lower() for palabra in bad_words):
+        usuario = msg.from_user.id
+        advertencias = user_warnings.get(usuario, 0) + 1
+        user_warnings[usuario] = advertencias
 
-    if __name__ == "__main__":
-        executor.start_polling(dp, skip_updates=True)
+        if advertencias == 1:
+            await msg.reply("⚠️ Primera advertencia: No uses lenguaje inapropiado.")
+        elif advertencias == 2:
+            await msg.reply("⚠️ Segunda advertencia. Se notificará a los administradores.")
+            for admin in admins.get(msg.chat.id, []):
+                await bot.send_message(admin.user.id, f"🚨 {msg.from_user.full_name} fue advertido por lenguaje inapropiado en {msg.chat.title}.")
+        elif advertencias >= 3:
+            await msg.reply("⛔ Has recibido 3 advertencias. Serás silenciado por 5 minutos.")
+            await bot.restrict_chat_member(
+                msg.chat.id,
+                msg.from_user.id,
+                ChatPermissions(can_send_messages=False),
+                until_date=msg.date + 300
+            )
+        await msg.delete()
+
+    # Mención de administrador
+    if msg.entities:
+        for entity in msg.entities:
+            if entity.type == "mention":
+                username_mencionado = msg.text[entity.offset:entity.offset + entity.length]
+                for admin in admins.get(msg.chat.id, []):
+                    if admin.user.username and f"@{admin.user.username}".lower() == username_mencionado.lower():
+                        await bot.send_message(admin.user.id, f"🔔 Has sido mencionado en el grupo {msg.chat.title} por {msg.from_user.full_name}.")
+
+if __name__ == '__main__':
+    executor.start_polling(dp, skip_updates=True)
