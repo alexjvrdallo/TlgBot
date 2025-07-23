@@ -1,28 +1,33 @@
+from aiogram import Bot, Dispatcher, executor, types
 import logging
-import asyncio
-from aiogram import Bot, Dispatcher, types
-from aiogram.types import Message
-from aiogram.filters import Command
-from aiogram.enums import ParseMode
-from dotenv import load_dotenv
 import os
+from dotenv import load_dotenv
 
 load_dotenv()
+
 API_TOKEN = os.getenv("API_TOKEN")
 
-bot = Bot(token=API_TOKEN, parse_mode=ParseMode.HTML)
-dp = Dispatcher()
+if not API_TOKEN:
+    raise ValueError("API_TOKEN not found in .env")
 
-ADMIN_IDS = [123456789]  # Reemplaza con los IDs reales de los administradores
+logging.basicConfig(level=logging.INFO)
 
-@dp.message(Command("start"))
-async def cmd_start(message: Message):
-    await message.reply("¡Hola! Usa /reglas para ver las reglas.")
+bot = Bot(token=API_TOKEN, parse_mode=types.ParseMode.HTML)
+dp = Dispatcher(bot)
 
-@dp.message(Command("reglas"))
-async def cmd_reglas(message: Message):
+ADMIN_IDS = ["123456789", "987654321"]  # Reemplaza con los IDs reales
+
+@dp.message_handler(commands=["start"])
+async def send_welcome(message: types.Message):
+    await message.reply("¡Hola y gracias por unirte a nuestra comunidad. Estamos muy contentos de tenerte aquí. Antes de comenzar, por favor tómate un momento para leer nuestras reglas para mantener un ambiente respetuoso y productivo para todos:
+
+Usa /reglas para ver las reglas del grupo.
+Si necesitas ayuda, escribe /ayuda para notificar a los administradores.")
+
+@dp.message_handler(commands=["reglas"])
+async def send_rules(message: types.Message):
     reglas = (
-        "📌 <b>Reglas del grupo:</b>
+        "<b>📌 Reglas del grupo:</b>
 "
         "1. Prohibido dar precios en público.
 "
@@ -36,24 +41,27 @@ async def cmd_reglas(message: Message):
     )
     await message.reply(reglas)
 
-@dp.message(Command("staff"))
-async def cmd_staff(message: Message):
-    await message.reply("👨‍💼 <b>Administradores:</b>
-• Alexander - @AlexanderUser
-• Support - @SupportUser")
+@dp.message_handler(commands=["staff"])
+async def send_admins(message: types.Message):
+    admins = (
+        "<b>👥 Administradores:</b>
+"
+        "• Alex - <a href='tg://user?id=123456789'>Enviar mensaje</a>
+"
+        "• Carla - <a href='tg://user?id=987654321'>Enviar mensaje</a>"
+    )
+    await message.reply(admins)
 
-@dp.message(Command("ayuda"))
-async def cmd_ayuda(message: Message):
+@dp.message_handler(commands=["ayuda"])
+async def notify_admins(message: types.Message):
+    grupo = message.chat.id
     for admin_id in ADMIN_IDS:
         try:
-            await bot.send_message(admin_id, f"🚨 El usuario @{message.from_user.username} ha solicitado ayuda.")
-        except:
-            pass
-    await message.reply("🚨 Solicitud de ayuda enviada.")
-
-async def main():
-    logging.basicConfig(level=logging.INFO)
-    await dp.start_polling(bot)
+            await bot.send_message(admin_id, f"🆘 El usuario @{message.from_user.username} solicitó ayuda en el grupo con ID {grupo}.")
+        except Exception as e:
+            logging.error(f"No se pudo enviar mensaje a {admin_id}: {e}")
+    await message.reply("✅ Se ha notificado a los administradores. Pronto te responderán.")
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    from aiogram import executor
+    executor.start_polling(dp, skip_updates=True)
