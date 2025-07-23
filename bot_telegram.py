@@ -1,70 +1,50 @@
-import logging
-from aiogram import Bot, Dispatcher, types
-from aiogram.types import ChatPermissions
-from aiogram.utils import executor
-import asyncio
-import re
+
 import os
+from aiogram import Bot, Dispatcher, types
+from aiogram.types import Message
+from aiogram.utils import executor
+from dotenv import load_dotenv
+
+load_dotenv()
 
 API_TOKEN = os.getenv("API_TOKEN")
-
-logging.basicConfig(level=logging.INFO)
+GROUP_ID = int(os.getenv("GROUP_ID"))
 
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)
 
-# Diccionario para rastrear advertencias por usuario
-warnings = {}
-
-# Reglas del grupo
-reglas_texto = """📌 Reglas del grupo:
-1. Respeto mutuo
-2. No spam
-3. Seguir las normas de Telegram."""
-
-@dp.message_handler(commands=["start"])
-async def send_welcome(message: types.Message):
-    await message.answer("¡Hola! Bienvenido al bot. Usa /reglas para ver las reglas.")
-
-@dp.message_handler(commands=["reglas"])
-async def send_rules(message: types.Message):
-    await message.answer(reglas_texto)
-
+# Mensaje de bienvenida al entrar al grupo
 @dp.message_handler(content_types=types.ContentType.NEW_CHAT_MEMBERS)
 async def welcome_new_member(message: types.Message):
     for user in message.new_chat_members:
-        await message.reply(f"👋 Bienvenido/a {user.full_name} al grupo.")
+        texto = f"👋 Bienvenido/a, {user.full_name}!"
+        await message.reply(texto)
 
-# Detectar spam
-spam_keywords = ['http', 'www', 't.me/', '@', '.com']
-spam_pattern = re.compile(r"|".join(map(re.escape, spam_keywords)), re.IGNORECASE)
+# Comando /start
+@dp.message_handler(commands=["start"])
+async def start_command(message: Message):
+    await message.reply("🤖 Bot activado y listo para recibir comandos.")
 
-async def check_spam(message: types.Message):
-    user_id = message.from_user.id
-    chat_id = message.chat.id
-    text = message.text or ""
+# Comando /ayuda
+@dp.message_handler(commands=["ayuda"])
+async def ayuda_command(message: Message):
+    await bot.send_message(GROUP_ID, f"🚨 El usuario @{message.from_user.username} ha solicitado ayuda.")
+    await message.reply("🚨 Solicitud de ayuda enviada.")
 
-    if spam_pattern.search(text):
-        count = warnings.get((chat_id, user_id), 0) + 1
-        warnings[(chat_id, user_id)] = count
+# Comando /staff
+@dp.message_handler(commands=["staff"])
+async def staff_command(message: Message):
+    await message.reply("👨‍💼 Lista de administradores:"
+- Admin 1
+- Admin 2")
 
-        if count == 1:
-            await message.reply("⚠️ Advertencia 1: No se permite hacer spam.")
-        elif count == 2:
-            await message.reply("⚠️ Advertencia 2: Último aviso. El usuario ha sido notificado a los administradores.")
-            admins = await bot.get_chat_administrators(chat_id)
-            admin_mentions = ", ".join([f"@{admin.user.username}" for admin in admins if admin.user.username])
-            if admin_mentions:
-                await message.answer(f"🚨 Atención administradores: {message.from_user.full_name} está enviando spam. {admin_mentions}")
-        elif count >= 3:
-            await message.reply("⛔ Has sido silenciado por 5 minutos debido a spam.")
-            until_date = message.date + asyncio.timedelta(minutes=5)
-            await bot.restrict_chat_member(chat_id, user_id, ChatPermissions(can_send_messages=False), until_date=until_date)
-            warnings[(chat_id, user_id)] = 0
-
-@dp.message_handler(lambda message: message.chat.type in ["group", "supergroup", "private"])
-async def handle_messages(message: types.Message):
-    await check_spam(message)
+# Comando /reglas
+@dp.message_handler(commands=["reglas"])
+async def reglas_command(message: Message):
+    await message.reply("📜 Reglas del grupo:"
+1. Respeta a los demás.
+2. No spam.
+3. Sigue las instrucciones del staff.")
 
 if __name__ == "__main__":
     from aiogram import executor
