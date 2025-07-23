@@ -1,49 +1,64 @@
 import os
-from dotenv import load_dotenv
+import logging
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
-load_dotenv()
-TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
+
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+
+ADMIN_IDS = [123456789, 987654321]  # Reemplaza con los IDs reales
+ADMIN_CONTACTS = ["@admin1", "@admin2"]
+
+WELCOME_MESSAGE = (
+    "¡Hola y gracias por unirte a nuestra comunidad. Estamos muy contentos de tenerte aquí. "
+    "Antes de comenzar, por favor tómate un momento para leer nuestras reglas para mantener un ambiente "
+    "respetuoso y productivo para todos:
+
+Usa /reglas para ver las reglas y /ayuda si necesitas asistencia."
+)
+
+REGLAS = (
+    "📌 Reglas del grupo:
+"
+    "1. Prohibido dar precios en público.
+"
+    "2. Respeto ante todo: no se toleran insultos, lenguaje ofensivo ni discriminación.
+"
+    "3. Nada de spam, promociones o enlaces sin autorización.
+"
+    "4. Evita mensajes repetitivos, cadenas o contenido no relacionado.
+"
+    "5. Las decisiones de los administradores son finales. Si tienes dudas, puedes contactarlos."
+)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "¡Hola y gracias por unirte a nuestra comunidad. Estamos muy contentos de tenerte aquí. "
-        "Antes de comenzar, por favor tómate un momento para leer nuestras reglas para mantener "
-        "un ambiente respetuoso y productivo para todos:\n\nUsa /reglas para verlas.\n"
-        "Si necesitas ayuda, escribe /ayuda."
-    )
+    await update.message.reply_text(WELCOME_MESSAGE)
 
 async def reglas(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "📌 Reglas del grupo:\n"
-        "1. Prohibido dar precios en público.\n"
-        "2. Respeto ante todo: no se toleran insultos, lenguaje ofensivo ni discriminación.\n"
-        "3. Nada de spam, promociones o enlaces sin autorización.\n"
-        "4. Evita mensajes repetitivos, cadenas o contenido no relacionado.\n"
-        "5. Las decisiones de los administradores son finales. Si tienes dudas, puedes contactarlos."
-    )
+    await update.message.reply_text(REGLAS)
 
 async def staff(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "👥 Lista de administradores:\n"
-        "• Admin 1: @Admin1\n"
-        "• Admin 2: @Admin2"
-    )
+    lista = "\n".join(ADMIN_CONTACTS)
+    await update.message.reply_text(f"📋 Lista de administradores:\n{lista}")
 
 async def ayuda(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🔔 Un administrador ha sido notificado.")
-    admin_usernames = ["@Admin1", "@Admin2"]
-    for username in admin_usernames:
+    for admin_id in ADMIN_IDS:
         try:
-            await context.bot.send_message(chat_id=username, text="🚨 Un usuario ha solicitado ayuda en el grupo.")
+            await context.bot.send_message(chat_id=admin_id, text=f"🆘 Un usuario ha solicitado ayuda desde el grupo {update.effective_chat.title}.")
         except Exception as e:
-            print(f"Error al enviar mensaje a {username}: {e}")
+            logging.error(f"Error al enviar mensaje al admin: {e}")
+    await update.message.reply_text("✅ Los administradores han sido notificados y te contactarán pronto.")
 
-app = ApplicationBuilder().token(TOKEN).build()
-app.add_handler(CommandHandler("start", start))
-app.add_handler(CommandHandler("reglas", reglas))
-app.add_handler(CommandHandler("staff", staff))
-app.add_handler(CommandHandler("ayuda", ayuda))
+if __name__ == '__main__':
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
 
-app.run_polling()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("reglas", reglas))
+    app.add_handler(CommandHandler("staff", staff))
+    app.add_handler(CommandHandler("ayuda", ayuda))
+
+    app.run_polling()
