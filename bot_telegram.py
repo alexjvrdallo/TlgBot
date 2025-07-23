@@ -1,114 +1,101 @@
-from aiogram import Bot, Dispatcher, types, executor
 import logging
 import re
-import os
+from aiogram import Bot, Dispatcher, executor, types
 from aiogram.types import ChatPermissions
+from aiogram.utils.exceptions import BadRequest
 
-API_TOKEN = os.getenv("API_TOKEN")
+API_TOKEN = "AQUI_VA_TU_TOKEN"
 
 logging.basicConfig(level=logging.INFO)
+
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)
 
-admins = {}
+# Lista de malas palabras (puedes ampliar esta lista)
+bad_words = [r"maldito", r"mardito", r"idiota", r"estúpido", r"imbécil"]
 
-# Lista de palabras prohibidas
-bad_words = ["grosería1", "grosería2", "grosería3"]
-user_warnings = {}
+# Seguimiento de advertencias por usuario
+warnings = {}
 
-# Reglas del grupo
-reglas_texto = """📌 Reglas del grupo:
-
-1. Prohibido dar precios en Público.
-2. Respeto ante todo: no se toleran insultos, lenguaje ofensivo ni discriminación.
-3. Nada de spam, promociones o enlaces sin autorización.
-4. Evita mensajes repetitivos, cadenas o contenido no relacionado.
-5. Las decisiones de los administradores son finales. Si tienes dudas, puedes contactarlos.
-"""
-
-bienvenida = """👋 Hola y gracias por unirte a nuestra comunidad. Estamos muy contentos de tenerte aquí.
-Antes de comenzar, por favor tómate un momento para leer nuestras reglas para mantener un ambiente respetuoso y productivo para todos:
-
-/reglas - para ver las reglas
-/staff - para ver a los administradores del grupo
-/ayuda - si necesitas ayuda y quieres notificar a un admin
-"""
+# Obtener lista de administradores
+async def get_admins_names(message: types.Message):
+    chat_admins = await message.chat.get_administrators()
+    text = "* Lista de administradores:\n"
+    for admin in chat_admins:
+        if admin.user.username:
+            text += f"- [{admin.user.full_name}](tg://user?id={admin.user.id})\n"
+        else:
+            text += f"- {admin.user.full_name}\n"
+    await message.reply(text, parse_mode="Markdown")
 
 @dp.message_handler(commands=["start"])
-async def start(msg: types.Message):
-    await msg.answer("Bot activo.")
-
-@dp.message_handler(commands=["reglas"])
-async def reglas(msg: types.Message):
-    await msg.reply(reglas_texto)
-
-@dp.message_handler(commands=["ayuda"])
-async def ayuda(msg: types.Message):
-    if msg.chat.type in ["group", "supergroup"]:
-        for admin in admins.get(msg.chat.id, []):
-            await bot.send_message(admin.user.id, f"🆘 {msg.from_user.full_name} (@{msg.from_user.username}) pidió ayuda en el grupo {msg.chat.title}.")
-        await msg.reply("✅ Los administradores han sido notificados.")
+async def send_welcome(message: types.Message):
+    welcome_text = (
+        "Hola y gracias por unirte a nuestra comunidad. Estamos muy contentos de tenerte aquí.\n\n"
+        "Antes de comenzar, por favor tómate un momento para leer nuestras reglas para mantener un ambiente respetuoso y productivo para todos:\n\n"
+        "*Reglas del grupo:*\n"
+        "- Prohibido dar precios en Público.\n"
+        "- Respeto ante todo: no se toleran insultos, lenguaje ofensivo ni discriminación.\n"
+        "- Nada de spam, promociones o enlaces sin autorización.\n"
+        "- Evita mensajes repetitivos, cadenas o contenido no relacionado.\n"
+        "- Las decisiones de los administradores son finales. Si tienes dudas, puedes contactarlos.\n\n"
+        "Si necesitas ayuda, puedes escribir /ayuda y se notificará a los administradores.\n"
+        "Para ver a los administradores disponibles, puedes usar /staff"
+    )
+    await message.answer(welcome_text, parse_mode="Markdown")
 
 @dp.message_handler(commands=["staff"])
-async def staff(msg: types.Message):
-    if msg.chat.type in ["group", "supergroup"]:
-        chat_admins = await bot.get_chat_administrators(msg.chat.id)
-        texto = "👮 Lista de administradores:
-"
-        for admin in chat_admins:
-            user = admin.user
-            if user.username:
-                texto += f"• [{user.full_name}](https://t.me/{user.username})
-"
-            else:
-                texto += f"• {user.full_name}
-"
-        await msg.reply(texto, parse_mode="Markdown")
+async def list_admins(message: types.Message):
+    await get_admins_names(message)
 
-@dp.message_handler(content_types=types.ContentType.NEW_CHAT_MEMBERS)
-async def bienvenida_nuevo(msg: types.Message):
-    for user in msg.new_chat_members:
-        await msg.reply(f"👋 Bienvenido/a {user.full_name} al grupo.
-
-{bienvenida}")
-        # Guardar admins actuales
-        admins[msg.chat.id] = await bot.get_chat_administrators(msg.chat.id)
+@dp.message_handler(commands=["ayuda"])
+async def ayuda_handler(message: types.Message):
+    chat_admins = await message.chat.get_administrators()
+    for admin in chat_admins:
+        if not admin.user.is_bot:
+            try:
+                await bot.send_message(admin.user.id, f"🚨 El usuario [{message.from_user.full_name}](tg://user?id={message.from_user.id}) solicitó ayuda en el grupo: {message.chat.title}"),
+            except:
+                pass
+    await message.reply("📨 Se ha notificado a los administradores. Pronto te ayudarán.")
 
 @dp.message_handler()
-async def filtro_general(msg: types.Message):
-    if msg.chat.type not in ["group", "supergroup"]:
-        return
+async def handle_message(message: types.Message):
+    user_id = message.from_user.id
+    text = message.text.lower()
+
+    # Menciones a admins
+    if message.entities:
+        for entity in message.entities:
+            if entity.type == "mention":
+                admins = await message.chat.get_administrators()
+                for admin in admins:
+                    if admin.user.username and f"@{admin.user.username.lower()}" in text:
+                        try:
+                            await bot.send_message(admin.user.id, f"👤 Fuiste mencionado por {message.from_user.full_name} en {message.chat.title}")
+                        except:
+                            pass
 
     # Filtro de groserías
-    if any(palabra in msg.text.lower() for palabra in bad_words):
-        usuario = msg.from_user.id
-        advertencias = user_warnings.get(usuario, 0) + 1
-        user_warnings[usuario] = advertencias
+    for pattern in bad_words:
+        if re.search(pattern, text):
+            warnings[user_id] = warnings.get(user_id, 0) + 1
+            if warnings[user_id] == 2:
+                chat_admins = await message.chat.get_administrators()
+                for admin in chat_admins:
+                    if not admin.user.is_bot:
+                        try:
+                            await bot.send_message(admin.user.id, f"⚠️ El usuario [{message.from_user.full_name}](tg://user?id={user_id}) fue advertido por lenguaje inapropiado en {message.chat.title}. (2da advertencia)")
+                        except:
+                            pass
+            elif warnings[user_id] >= 3:
+                try:
+                    await bot.restrict_chat_member(message.chat.id, user_id, ChatPermissions(can_send_messages=False), until_date=message.date.timestamp() + 300)
+                    await message.reply(f"⛔ Has sido silenciado por 5 minutos por incumplir las reglas.")
+                except BadRequest:
+                    pass
+            else:
+                await message.reply(f"⚠️ Advertencia {warnings[user_id]}/3: lenguaje inapropiado no está permitido.")
 
-        if advertencias == 1:
-            await msg.reply("⚠️ Primera advertencia: No uses lenguaje inapropiado.")
-        elif advertencias == 2:
-            await msg.reply("⚠️ Segunda advertencia. Se notificará a los administradores.")
-            for admin in admins.get(msg.chat.id, []):
-                await bot.send_message(admin.user.id, f"🚨 {msg.from_user.full_name} fue advertido por lenguaje inapropiado en {msg.chat.title}.")
-        elif advertencias >= 3:
-            await msg.reply("⛔ Has recibido 3 advertencias. Serás silenciado por 5 minutos.")
-            await bot.restrict_chat_member(
-                msg.chat.id,
-                msg.from_user.id,
-                ChatPermissions(can_send_messages=False),
-                until_date=msg.date + 300
-            )
-        await msg.delete()
-
-    # Mención de administrador
-    if msg.entities:
-        for entity in msg.entities:
-            if entity.type == "mention":
-                username_mencionado = msg.text[entity.offset:entity.offset + entity.length]
-                for admin in admins.get(msg.chat.id, []):
-                    if admin.user.username and f"@{admin.user.username}".lower() == username_mencionado.lower():
-                        await bot.send_message(admin.user.id, f"🔔 Has sido mencionado en el grupo {msg.chat.title} por {msg.from_user.full_name}.")
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     executor.start_polling(dp, skip_updates=True)
