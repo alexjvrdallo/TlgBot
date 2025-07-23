@@ -1,69 +1,44 @@
-import logging
-from aiogram import Bot, Dispatcher, executor, types
-from aiogram.types import ParseMode
-from aiogram.utils.markdown import hbold
+import os
+from aiogram import Bot, Dispatcher, types
+from aiogram.types import Message
+from aiogram.utils import executor
+from aiogram.dispatcher.filters import Command
 
 API_TOKEN = "8046270772:AAHB7LBn9etmJK2c14fcrSQxZLgyqmY71AU"
 GROUP_ID = -1002783169217
 
-logging.basicConfig(level=logging.INFO)
-bot = Bot(token=API_TOKEN, parse_mode=ParseMode.HTML)
+bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)
 
-# Lista de administradores con nombres y user IDs
-ADMINISTRADORES = [
-    {"id": 123456789, "nombre": "Carlos"},
-    {"id": 987654321, "nombre": "María"}
-]
+ADMINS = {
+    123456789: "Admin1",
+    987654321: "Admin2"
+}
 
-PALABRAS_PROHIBIDAS = ["maldito", "mardito", "idiota", "estúpido"]
-
-@dp.message_handler(commands=['start'])
-async def enviar_bienvenida(message: types.Message):
-    texto = (
-        f"👋 Bienvenido/a, {message.from_user.full_name}!
+@dp.message_handler(commands=["start"])
+async def send_welcome(message: types.Message):
+    texto = f"👋 Bienvenido/a, {message.from_user.full_name}!
 
 "
-        "📌 Asegúrate de respetar las reglas del grupo para mantener un ambiente sano:
+    texto += "Gracias por unirte al grupo. Para contactar con los administradores, usa el comando /ayuda.
 "
-        "1. Respeto entre miembros.
-"
-        "2. No spam.
-"
-        "3. Uso del comando /ayuda en caso de emergencia.
-
-"
-        "Si necesitas algo, usa /ayuda para notificar a los administradores."
-    )
+    texto += "Puedes ver la lista de administradores con /staff."
     await message.reply(texto)
 
 @dp.message_handler(commands=["ayuda"])
-async def comando_ayuda(message: types.Message):
-    for admin in ADMINISTRADORES:
-        try:
-            await bot.send_message(admin["id"], f"🆘 Solicitud de ayuda enviada.
-Usuario: @{message.from_user.username or message.from_user.full_name}")
-        except:
-            pass
-    await message.reply("📨 Tu solicitud ha sido enviada a los administradores.")
+async def help_command(message: Message):
+    await bot.send_message(GROUP_ID, f"📣 Solicitud de ayuda enviada por: {message.from_user.full_name} (@{message.from_user.username})")
+    await message.reply("✅ Solicitud de ayuda enviada.")
 
 @dp.message_handler(commands=["staff"])
-async def comando_staff(message: types.Message):
-    texto = "<b>👮 Lista de administradores:</b>
-"
-    for admin in ADMINISTRADORES:
-        texto += f"• <a href='tg://user?id={admin['id']}'>{admin['nombre']}</a>
-"
-    await message.reply(texto, parse_mode=ParseMode.HTML)
+async def list_admins(message: Message):
+    texto = "👮 Lista de administradores:
 
-@dp.message_handler()
-async def monitorear_mensajes(message: types.Message):
-    contenido = message.text.lower()
-    if any(palabra in contenido for palabra in PALABRAS_PROHIBIDAS):
-        for admin in ADMINISTRADORES:
-            try:
-                await bot.send_message(admin["id"], f"🚨 Posible mensaje ofensivo:
-Usuario: @{message.from_user.username or message.from_user.full_name}
-Contenido: {message.text}")
-            except:
-                pass
+"
+    for admin_id, name in ADMINS.items():
+        texto += f"• {name} - [Enviar mensaje](tg://user?id={admin_id})
+"
+    await message.reply(texto, parse_mode="Markdown")
+
+if __name__ == "__main__":
+    executor.start_polling(dp, skip_updates=True)
