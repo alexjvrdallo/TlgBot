@@ -35,7 +35,7 @@ async def start(message: types.Message):
 @dp.message_handler(commands=["reglas"])
 async def reglas(message: types.Message):
     texto = (
-        "📌 Reglas del grupo:
+        """📌 Reglas del grupo:
 "
         "1. Prohibido dar precios en público.
 "
