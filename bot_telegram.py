@@ -22,6 +22,13 @@ Usa /reglas para ver las reglas y /ayuda si necesitas asistencia."
 )
 
 REGLAS = (
+    "📌 Reglas del grupo:\n"
+    "1. Prohibido dar precios en público.\n"
+    "2. Respeto ante todo: no se toleran insultos, lenguaje ofensivo ni discriminación.\n"
+    "3. No spam, publicidad ni enlaces sin autorización.\n"
+    "4. Usa un lenguaje claro y evita escribir todo en mayúsculas.\n"
+    "5. Sigue siempre las indicaciones de los administradores."
+)
     "📌 Reglas del grupo:
 "
     "1. Prohibido dar precios en público.
