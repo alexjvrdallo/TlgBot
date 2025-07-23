@@ -1,4 +1,3 @@
-
 import os
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import Message
@@ -34,18 +33,12 @@ async def ayuda_command(message: Message):
 # Comando /staff
 @dp.message_handler(commands=["staff"])
 async def staff_command(message: Message):
-    await message.reply("👨‍💼 Lista de administradores:
-- Admin 1
-- Admin 2")
+    await message.reply("👨‍💼 Lista de administradores:\n- Admin 1\n- Admin 2")
 
 # Comando /reglas
 @dp.message_handler(commands=["reglas"])
 async def reglas_command(message: Message):
-    await message.reply("📜 Reglas del grupo:
-1. Respeta a los demás.
-2. No spam.
-3. Sigue las instrucciones del staff.")
+    await message.reply("📜 Reglas del grupo:\n1. Respeta a los demás.\n2. No spam.\n3. Sigue las instrucciones del staff.")
 
 if __name__ == "__main__":
-    from aiogram import executor
     executor.start_polling(dp, skip_updates=True)
