@@ -1,8 +1,8 @@
 import os
-from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import Message
 from aiogram.utils import executor
+from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -11,23 +11,20 @@ API_TOKEN = os.getenv("API_TOKEN")
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)
 
-# Lista de administradores
-ADMIN_USERS = [
-    {"nombre": "Alex", "contacto": "@AlexAdmin"},
-    {"nombre": "Sofía", "contacto": "@SofiaAdmin"}
-]
+ADMIN_IDS = [123456789, 987654321]  # Reemplaza con los IDs reales de los administradores
 
-# Comando /start
 @dp.message_handler(commands=["start"])
-async def start_cmd(message: Message):
-    await message.reply("¡Hola y gracias por unirte a nuestra comunidad. Estamos muy contentos de tenerte aquí. Antes de comenzar, por favor tómate un momento para leer nuestras reglas para mantener un ambiente respetuoso y productivo para todos:
+async def send_welcome(message: types.Message):
+    await message.reply(
+        "¡Hola y gracias por unirte a nuestra comunidad. Estamos muy contentos de tenerte aquí. "
+        "Antes de comenzar, por favor tómate un momento para leer nuestras reglas para mantener "
+        "un ambiente respetuoso y productivo para todos:\n
+"
+        "Usa /reglas para ver las reglas y /ayuda si necesitas contactar al staff."
+    )
 
-Usa /reglas para ver las reglas del grupo.
-Si necesitas ayuda, escribe /ayuda para contactar a los administradores.")
-
-# Comando /reglas
 @dp.message_handler(commands=["reglas"])
-async def reglas_cmd(message: Message):
+async def reglas_handler(message: types.Message):
     reglas = (
         "📌 Reglas del grupo:
 "
@@ -43,25 +40,27 @@ async def reglas_cmd(message: Message):
     )
     await message.reply(reglas)
 
-# Comando /staff
 @dp.message_handler(commands=["staff"])
-async def staff_cmd(message: Message):
-    staff = "👮 Lista de administradores:
-" + "
-".join([f"- {admin['nombre']}: {admin['contacto']}" for admin in ADMIN_USERS])
-    await message.reply(staff)
+async def staff_handler(message: types.Message):
+    staff_info = (
+        "👮 Lista de administradores:
+"
+        "• Admin 1: @admin1
+"
+        "• Admin 2: @admin2
+"
+        "Puedes contactarlos si necesitas ayuda."
+    )
+    await message.reply(staff_info)
 
-# Comando /ayuda
 @dp.message_handler(commands=["ayuda"])
-async def ayuda_cmd(message: Message):
-    aviso = f"🚨 El usuario @{message.from_user.username} ha solicitado ayuda en el grupo."
-    for admin in ADMIN_USERS:
+async def ayuda_handler(message: types.Message):
+    for admin_id in ADMIN_IDS:
         try:
-            await bot.send_message(chat_id=admin["contacto"], text=aviso)
+            await bot.send_message(admin_id, f"🚨 Un usuario solicitó ayuda en el grupo: @{message.chat.username or 'sin username'}")
         except:
             pass
-    await message.reply("✅ Los administradores han sido notificados. Te contactarán pronto.")
+    await message.reply("✅ Los administradores han sido notificados. Pronto te responderán.")
 
 if __name__ == "__main__":
-    from aiogram import executor
     executor.start_polling(dp, skip_updates=True)
