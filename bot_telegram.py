@@ -1,38 +1,36 @@
 
-import logging
 import os
-from telegram import Update
-from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters, ChatMemberHandler
+import asyncio
+from aiogram import Bot, Dispatcher, types
+from aiogram.types import ChatMemberUpdated
+from aiogram.filters import ChatMemberUpdatedFilter
 
-logging.basicConfig(level=logging.INFO)
+TOKEN = os.getenv("TOKEN")
+if not TOKEN:
+    raise RuntimeError("No se encontró el TOKEN en las variables de entorno.")
 
-REGLAS = """📌 Reglas del grupo:
-1. Sé respetuoso.
-2. No spam.
-3. Usa el grupo con responsabilidad."""
+bot = Bot(token=TOKEN)
+dp = Dispatcher()
 
-async def welcome(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    result = update.chat_member
-    if result.new_chat_member.status == "member":
-        member = result.new_chat_member.user
-        await context.bot.send_message(chat_id=update.effective_chat.id,
-                                       text=f"👋 Bienvenido/a {member.full_name}!")
-        await context.bot.send_message(chat_id=update.effective_chat.id, text=REGLAS)
+@dp.chat_member(ChatMemberUpdatedFilter(member_status_changed=True))
+async def on_user_join(event: ChatMemberUpdated):
+    member = event.new_chat_member
+    if member.status == "member":
+        await bot.send_message(
+            chat_id=event.chat.id,
+            text=f"👋 Bienvenido/a {member.user.full_name}!"
+        )
 
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    pass  # Aquí puedes manejar mensajes si quieres
+@dp.message()
+async def on_message(message: types.Message):
+    if message.text and "reglas" in message.text.lower():
+        await message.answer("📌 Reglas del grupo:
+1. Respeto
+2. No spam
+3. Seguir las normas de Telegram.")
 
 async def main():
-    token = os.getenv("TU_TOKEN")
-    if not token:
-        raise RuntimeError("No se encontró el TOKEN en las variables de entorno.")
-    app = ApplicationBuilder().token(token).build()
-
-    app.add_handler(ChatMemberHandler(welcome, ChatMemberHandler.CHAT_MEMBER))
-    app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
-
-    await app.run_polling()
+    await dp.start_polling(bot)
 
 if __name__ == "__main__":
-    import asyncio
     asyncio.run(main())
