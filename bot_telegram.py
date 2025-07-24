@@ -16,7 +16,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 "Hola y gracias por unirte a nuestra comunidad. Estamos muy contentos de tenerte aquí. Antes de comenzar, por favor tómate un momento para leer nuestras reglas para mantener un ambiente respetuoso y productivo para todos:\n"
 
-"📌 Reglas del grupo:"\n"
+"📌 Reglas del grupo:\n"
 
 "Respeto ante todo: no se toleran insultos, lenguaje ofensivo ni discriminación.\n"
 
