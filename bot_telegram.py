@@ -12,17 +12,34 @@ logging.basicConfig(
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
-        "Hola y gracias por unirte a nuestra comunidad. Estamos muy contentos de tenerte aquí.\n"
-        "Antes de comenzar, por favor tómate un momento para leer nuestras reglas para mantener un ambiente respetuoso y productivo para todos:\n"
-        "\n"
-        "1. Respeto mutuo: Trata a todos los miembros con cortesía. No se tolerará lenguaje ofensivo, discriminación o acoso.\n"
-        "2. Contenido apropiado: Comparte solo contenido relacionado con el propósito del grupo. Evita spam, publicidad no autorizada o material inapropiado.\n"
-        "3. Privacidad: No compartas información personal tuya ni de otros sin consentimiento.\n"
-        "4. Colaboración: Si tienes preguntas, dudas o aportes, compártelos con respeto.\n"
-        "5. Moderación: Los administradores están para ayudar. Si necesitas asistencia, usa /ayuda.\n"
-        "\n"
-        "🆘 En cualquier momento puedes escribir /ayuda para contactar a los administradores.\n"
-        "Gracias por formar parte de esta comunidad."
+        🎉 ¡Bienvenido/a al grupo TrustDelivery 🎉
+
+Hola y gracias por unirte a nuestra comunidad. Estamos muy contentos de tenerte aquí. Antes de comenzar, por favor tómate un momento para leer nuestras reglas para mantener un ambiente respetuoso y productivo para todos:
+
+📌 Reglas del grupo:
+
+Respeto ante todo: no se toleran insultos, lenguaje ofensivo ni discriminación.
+
+Nada de spam, promociones o enlaces sin autorización.
+
+Evita mensajes repetitivos, cadenas o contenido no relacionado.
+
+Las decisiones de los administradores son finales. Si tienes dudas, puedes contactarlos.
+
+🔧 Usa el comando /reglas para ver las reglas en cualquier momento.
+
+👮‍♂ Usa el comando /staff para ver la lista de administradores del grupo.
+
+🚨 Este grupo cuenta con un sistema automático de advertencias. Las faltas a las reglas serán sancionadas con:
+
+1ª advertencia: recordatorio de las normas.
+
+2ª advertencia: los administradores serán notificados.
+
+3ª advertencia: silenciamiento temporal.
+
+🤖 Además, el bot detectará groserías, spam y comportamientos sospechosos. 
+Usuarios reincidentes que intenten reingresar con otro nombre serán detectados y notificados a los administradores.
     )
 
 async def reglas(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
