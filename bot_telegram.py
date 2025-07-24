@@ -12,34 +12,34 @@ logging.basicConfig(
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
-        "🎉 ¡Bienvenido/a al grupo TrustDelivery 🎉"
+        "🎉 ¡Bienvenido/a al grupo TrustDelivery 🎉"\n"
 
-"Hola y gracias por unirte a nuestra comunidad. Estamos muy contentos de tenerte aquí. Antes de comenzar, por favor tómate un momento para leer nuestras reglas para mantener un ambiente respetuoso y productivo para todos:"
+"Hola y gracias por unirte a nuestra comunidad. Estamos muy contentos de tenerte aquí. Antes de comenzar, por favor tómate un momento para leer nuestras reglas para mantener un ambiente respetuoso y productivo para todos:"\n"
 
-"📌 Reglas del grupo:"
+"📌 Reglas del grupo:"\n"
 
-"Respeto ante todo: no se toleran insultos, lenguaje ofensivo ni discriminación."
+"Respeto ante todo: no se toleran insultos, lenguaje ofensivo ni discriminación."\n"
 
-"Nada de spam, promociones o enlaces sin autorización."
+"Nada de spam, promociones o enlaces sin autorización."\n"
 
-"Evita mensajes repetitivos, cadenas o contenido no relacionado."
+"Evita mensajes repetitivos, cadenas o contenido no relacionado."\n"
 
-"Las decisiones de los administradores son finales. Si tienes dudas, puedes contactarlos."
+"Las decisiones de los administradores son finales. Si tienes dudas, puedes contactarlos."\n"
 
-"🔧 Usa el comando /reglas para ver las reglas en cualquier momento."
+"🔧 Usa el comando /reglas para ver las reglas en cualquier momento."\n"
 
-"👮‍♂ Usa el comando /staff para ver la lista de administradores del grupo."
+"👮‍♂ Usa el comando /staff para ver la lista de administradores del grupo."\n"
 
-"🚨 Este grupo cuenta con un sistema automático de advertencias. Las faltas a las reglas serán sancionadas con:"
+"🚨 Este grupo cuenta con un sistema automático de advertencias. Las faltas a las reglas serán sancionadas con:"\n"
 
-"1ª advertencia: recordatorio de las normas."
+"1ª advertencia: recordatorio de las normas."\n"
 
-"2ª advertencia: los administradores serán notificados."
+"2ª advertencia: los administradores serán notificados."\n"
 
-"3ª advertencia: silenciamiento temporal."
+"3ª advertencia: silenciamiento temporal."\n"
 
-"🤖 Además, el bot detectará groserías, spam y comportamientos sospechosos." 
-"Usuarios reincidentes que intenten reingresar con otro nombre serán detectados y notificados a los administradores."
+"🤖 Además, el bot detectará groserías, spam y comportamientos sospechosos." \n"
+"Usuarios reincidentes que intenten reingresar con otro nombre serán detectados y notificados a los administradores."\n"
     )
 
 async def reglas(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
