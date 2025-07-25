@@ -1,15 +1,18 @@
 import logging
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 import os
+from telegram import Update
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters
 
+# Obtener el token del entorno
 TOKEN = os.getenv("BOT_TOKEN")
 
+# Configuración de logs
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
 
+# /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
         "🎉 ¡Bienvenido/a al grupo TrustDelivery 🎉\n"
@@ -29,6 +32,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         "Usuarios reincidentes que intenten reingresar con otro nombre serán detectados y notificados a los administradores."
     )
 
+# /reglas
 async def reglas(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
         "<b>Reglas del grupo:</b>\n"
@@ -40,6 +44,7 @@ async def reglas(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         parse_mode="HTML"
     )
 
+# /ayuda
 async def ayuda(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat = update.effective_chat
     admins = await context.bot.get_chat_administrators(chat.id)
@@ -53,6 +58,7 @@ async def ayuda(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     await update.message.reply_text("✅ Hemos notificado a los administradores. Pronto te contactarán.")
 
+# /staff
 async def staff(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat = update.effective_chat
     admins = await context.bot.get_chat_administrators(chat.id)
@@ -63,12 +69,27 @@ async def staff(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     ])
     await update.message.reply_text(f"<b>Administradores del grupo:</b>\n{admin_list}", parse_mode="HTML")
 
+# 🚪 Bienvenida automática
+async def bienvenida(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    for nuevo in update.message.new_chat_members:
+        await update.message.reply_text(
+            f"👋 ¡Bienvenido/a {nuevo.mention_html()} al grupo TrustDelivery!\n"
+            "Por favor, revisa nuestras reglas con el comando /reglas. ¡Esperamos que disfrutes tu estadía!",
+            parse_mode="HTML"
+        )
+
+# 🔁 Lanzador
 if __name__ == '__main__':
     app = ApplicationBuilder().token(TOKEN).build()
 
+    # Comandos
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("reglas", reglas))
     app.add_handler(CommandHandler("ayuda", ayuda))
     app.add_handler(CommandHandler("staff", staff))
 
+    # Detectar nuevos miembros
+    app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, bienvenida))
+
+    # Iniciar el bot
     app.run_polling()
